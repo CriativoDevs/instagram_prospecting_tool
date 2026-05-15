@@ -60,9 +60,15 @@ async function searchWithApify(hashtag: string, apiToken: string): Promise<Insta
 
   const posts: ApifyPost[] = await hashtagRes.json();
 
-  const usernames = [
-    ...new Set(posts.map(p => p.ownerUsername).filter(Boolean) as string[])
-  ].slice(0, 20);
+  const seen = new Set<string>();
+  const usernames: string[] = [];
+  for (const post of posts) {
+    if (post.ownerUsername && !seen.has(post.ownerUsername)) {
+      seen.add(post.ownerUsername);
+      usernames.push(post.ownerUsername);
+    }
+  }
+  usernames.splice(20);
 
   if (usernames.length === 0) {
     throw new Error(`Nenhum post encontrado para a hashtag "#${hashtag}".`);
