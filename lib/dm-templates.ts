@@ -51,7 +51,7 @@ Desenvolvemos uma plataforma portuguesa de gestão para centros de estética —
 Estamos a oferecer 14 dias grátis aos primeiros clientes em troca de feedback honesto. Para saber mais: https://timelyone.today`,
 
   unhas: (name) =>
-    `Olá ${name}! Vi os vossos designs no Instagram — que trabalho detalhado 💅
+    `Olá ${name}! Vi os vossos designs no Instagram — que trabalho detalhista 💅
 
 Desenvolvemos uma plataforma portuguesa de gestão para nail studios — marcações online, gestão de clientes recorrentes, lembretes por SMS e controlo de receita.
 

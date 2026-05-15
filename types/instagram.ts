@@ -13,6 +13,8 @@ export interface InstagramProfile {
 export interface ProspectStatus {
   status: 'pending' | 'sent' | 'replied' | 'converted' | 'ignored';
   contactedAt?: string;
+  repliedAt?: string;
+  convertedAt?: string;
   dmText?: string;
 }
 
