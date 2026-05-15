@@ -8,6 +8,16 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "TimelyOne — Instagram Prospecting",
   description: "Ferramenta de prospecção estratégica para o mercado de beleza no Instagram.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Prospecting",
+  },
+  icons: {
+    apple: "/icons/apple-touch-icon.png",
+    icon: "/icons/icon-192x192.png",
+  },
 };
 
 export default function RootLayout({
