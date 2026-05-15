@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { storage } from "@/lib/storage";
+import { storage, getLocalProspects, clearLocalProspects } from "@/lib/storage";
 import { ScoredProfile } from "@/types/instagram";
-import { ArrowLeft, ExternalLink, Download, MessageSquare, TrendingUp, Send, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Download, MessageSquare, TrendingUp, Send, Trash2, Upload } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const STATUS_CONFIG = {
-  pending:   { label: "Pendente",   color: "bg-slate-500/10 border-slate-500/30 text-slate-400" },
-  sent:      { label: "Enviada",    color: "bg-blue-500/10 border-blue-500/30 text-blue-400" },
-  replied:   { label: "Respondeu",  color: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" },
-  converted: { label: "Converteu",  color: "bg-green-500/10 border-green-500/30 text-green-400" },
-  ignored:   { label: "Ignorada",   color: "bg-red-500/10 border-red-500/30 text-red-400" },
+  pending:   { label: "Pendente",  color: "bg-slate-500/10 border-slate-500/30 text-slate-400" },
+  sent:      { label: "Enviada",   color: "bg-blue-500/10 border-blue-500/30 text-blue-400" },
+  replied:   { label: "Respondeu", color: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" },
+  converted: { label: "Converteu", color: "bg-green-500/10 border-green-500/30 text-green-400" },
+  ignored:   { label: "Ignorada",  color: "bg-red-500/10 border-red-500/30 text-red-400" },
 };
 
 function formatDate(iso?: string) {
@@ -20,27 +20,45 @@ function formatDate(iso?: string) {
   return new Date(iso).toLocaleDateString("pt-PT");
 }
 
-const EMPTY_STATS = { totalFound: 0, contacted: 0, replied: 0, converted: 0, responseRate: 0 };
-
 export default function HistoryPage() {
   const [prospects, setProspects] = useState<ScoredProfile[]>([]);
-  const [stats, setStats] = useState(EMPTY_STATS);
+  const [loading, setLoading] = useState(true);
+  const [migrating, setMigrating] = useState(false);
+  const [localCount, setLocalCount] = useState(0);
 
-  useEffect(() => {
-    setProspects(storage.getProspects());
-    setStats(storage.getStats());
-  }, []);
-
-  const refresh = () => setProspects(storage.getProspects());
-
-  const handleUpdateStatus = (username: string, status: 'replied' | 'converted') => {
-    storage.updateStatus(username, status);
-    refresh();
+  const load = async () => {
+    setLoading(true);
+    const data = await storage.getProspects();
+    setProspects(data);
+    setLoading(false);
   };
 
-  const handleDelete = (username: string) => {
-    storage.deleteProspect(username);
-    refresh();
+  useEffect(() => {
+    load();
+    setLocalCount(getLocalProspects().length);
+  }, []);
+
+  const stats = storage.getStats(prospects);
+
+  const handleMigrate = async () => {
+    const local = getLocalProspects();
+    if (local.length === 0) return;
+    setMigrating(true);
+    await storage.migrate(local);
+    clearLocalProspects();
+    setLocalCount(0);
+    await load();
+    setMigrating(false);
+  };
+
+  const handleUpdateStatus = async (username: string, status: "replied" | "converted") => {
+    await storage.updateStatus(username, status);
+    await load();
+  };
+
+  const handleDelete = async (username: string) => {
+    await storage.deleteProspect(username);
+    setProspects(prev => prev.filter(p => p.username !== username));
   };
 
   const handleExport = () => {
@@ -56,7 +74,6 @@ export default function HistoryPage() {
       formatDate(p.prospectStatus?.convertedAt),
       p.profileUrl,
     ]);
-
     const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
@@ -64,13 +81,6 @@ export default function HistoryPage() {
     link.download = `prospecção_timelyone_${new Date().toISOString().split("T")[0]}.csv`;
     link.click();
   };
-
-  const conversionRate = stats.contacted > 0
-    ? Math.round((stats.converted / stats.contacted) * 100)
-    : 0;
-  const replyRate = stats.contacted > 0
-    ? Math.round((stats.replied / stats.contacted) * 100)
-    : 0;
 
   return (
     <div className="flex flex-col gap-8 p-8 max-w-7xl mx-auto w-full">
@@ -95,13 +105,35 @@ export default function HistoryPage() {
         </button>
       </div>
 
+      {/* Banner de migração */}
+      {localCount > 0 && (
+        <div className="flex items-center justify-between gap-4 p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+          <div>
+            <p className="text-yellow-400 font-semibold text-sm">
+              Tens {localCount} contacto{localCount !== 1 ? "s" : ""} guardados localmente neste computador.
+            </p>
+            <p className="text-yellow-500/70 text-xs mt-0.5">
+              Migra para a nuvem para os ver em todos os dispositivos.
+            </p>
+          </div>
+          <button
+            onClick={handleMigrate}
+            disabled={migrating}
+            className="shrink-0 flex items-center gap-2 px-4 py-2 bg-yellow-500/20 border border-yellow-500/40 rounded-xl text-yellow-400 hover:bg-yellow-500/30 disabled:opacity-50 transition-all text-sm font-medium"
+          >
+            <Upload size={16} />
+            {migrating ? "A migrar…" : "Migrar para a nuvem"}
+          </button>
+        </div>
+      )}
+
       {/* Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Mensagens enviadas", value: stats.contacted, icon: Send, color: "text-blue-400" },
-          { label: "Responderam", value: stats.replied, icon: MessageSquare, color: "text-yellow-400" },
-          { label: "Taxa de resposta", value: `${replyRate}%`, icon: TrendingUp, color: "text-accent" },
-          { label: "Conversões", value: stats.converted, icon: TrendingUp, color: "text-green-400" },
+          { label: "Mensagens enviadas", value: stats.contacted, icon: Send,         color: "text-blue-400" },
+          { label: "Responderam",        value: stats.replied,   icon: MessageSquare, color: "text-yellow-400" },
+          { label: "Taxa de resposta",   value: `${stats.replyRate}%`, icon: TrendingUp, color: "text-accent" },
+          { label: "Conversões",         value: stats.converted, icon: TrendingUp,   color: "text-green-400" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col gap-2">
             <div className="flex items-center justify-between">
@@ -128,12 +160,17 @@ export default function HistoryPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {prospects.length > 0 ? prospects.map((prospect) => {
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-20 text-center text-slate-500 text-sm">
+                    A carregar…
+                  </td>
+                </tr>
+              ) : prospects.length > 0 ? prospects.map((prospect) => {
                 const status = prospect.prospectStatus?.status || "pending";
                 const cfg = STATUS_CONFIG[status];
                 return (
                   <tr key={prospect.id} className="hover:bg-slate-800/30 transition-colors">
-                    {/* Perfil */}
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center">
@@ -148,50 +185,38 @@ export default function HistoryPage() {
                         </div>
                       </div>
                     </td>
-
-                    {/* Status badge */}
                     <td className="px-6 py-4">
                       <span className={cn("text-[10px] font-bold px-2 py-1 rounded-full border", cfg.color)}>
                         {cfg.label}
                       </span>
                     </td>
-
-                    {/* Datas */}
                     <td className="px-6 py-4 text-sm text-slate-400">{formatDate(prospect.prospectStatus?.contactedAt)}</td>
                     <td className="px-6 py-4 text-sm text-slate-400">{formatDate(prospect.prospectStatus?.repliedAt)}</td>
                     <td className="px-6 py-4 text-sm text-slate-400">{formatDate(prospect.prospectStatus?.convertedAt)}</td>
-
-                    {/* Ações */}
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1">
-                        {status === 'sent' && (
+                        {status === "sent" && (
                           <button
-                            onClick={() => handleUpdateStatus(prospect.username, 'replied')}
+                            onClick={() => handleUpdateStatus(prospect.username, "replied")}
                             className="px-3 py-1 text-xs rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 transition-colors"
                           >
                             Respondeu
                           </button>
                         )}
-                        {(status === 'sent' || status === 'replied') && (
+                        {(status === "sent" || status === "replied") && (
                           <button
-                            onClick={() => handleUpdateStatus(prospect.username, 'converted')}
+                            onClick={() => handleUpdateStatus(prospect.username, "converted")}
                             className="px-3 py-1 text-xs rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 transition-colors"
                           >
                             Converteu
                           </button>
                         )}
-                        <a
-                          href={prospect.profileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 text-slate-500 hover:text-accent transition-colors"
-                        >
+                        <a href={prospect.profileUrl} target="_blank" rel="noopener noreferrer"
+                          className="p-2 text-slate-500 hover:text-accent transition-colors">
                           <ExternalLink size={15} />
                         </a>
-                        <button
-                          onClick={() => handleDelete(prospect.username)}
-                          className="p-2 text-slate-500 hover:text-red-400 transition-colors"
-                        >
+                        <button onClick={() => handleDelete(prospect.username)}
+                          className="p-2 text-slate-500 hover:text-red-400 transition-colors">
                           <Trash2 size={15} />
                         </button>
                       </div>

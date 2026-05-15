@@ -11,11 +11,13 @@ export default function Home() {
     contacted: 0,
     replied: 0,
     converted: 0,
-    responseRate: 0
+    replyRate: 0
   });
 
   useEffect(() => {
-    setStats(storage.getStats());
+    storage.getProspects().then(prospects => {
+      setStats(storage.getStats(prospects));
+    });
   }, []);
 
   return (
@@ -35,7 +37,7 @@ export default function Home() {
         {[
           { label: "Perfis Encontrados", value: stats.totalFound.toString(), icon: Users, color: "text-blue-400" },
           { label: "Contactos Feitos", value: stats.contacted.toString(), icon: MessageSquare, color: "text-accent" },
-          { label: "Taxa de Resposta", value: `${stats.responseRate.toFixed(1)}%`, icon: BarChart3, color: "text-purple-400" },
+          { label: "Taxa de Resposta", value: `${stats.replyRate}%`, icon: BarChart3, color: "text-purple-400" },
           { label: "Conversões", value: stats.converted.toString(), icon: CheckCircle2, color: "text-success" },
         ].map((stat, i) => (
           <div key={i} className="bg-navy-light border border-slate-800 p-6 rounded-xl flex items-center gap-4">

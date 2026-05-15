@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FilterBar } from "@/components/FilterBar";
 import { ProfileCard } from "@/components/ProfileCard";
 import { DMGenerator } from "@/components/DMGenerator";
@@ -17,16 +17,35 @@ export default function SearchPage() {
   const [selectedProfile, setSelectedProfile] = useState<ScoredProfile | null>(null);
   const [stats, setStats] = useState({ found: 0, filtered: 0 });
   const [dataSource, setDataSource] = useState<{ source: "real" | "mock"; apiError?: string } | null>(null);
+  const [contacted, setContacted] = useState<Set<string>>(new Set());
+
+  // Carrega a lista de já contactados ao iniciar
+  useEffect(() => {
+    storage.getProspects().then(prospects => {
+      const usernames = prospects
+        .filter(p => p.prospectStatus?.status && p.prospectStatus.status !== "pending")
+        .map(p => p.username);
+      setContacted(new Set(usernames));
+    });
+  }, []);
 
   const handleSearch = async (hashtag: string, filters: FilterConfig) => {
     setIsLoading(true);
     setDataSource(null);
     try {
       const { profiles: results, source, apiError } = await searchInstagramHashtag(hashtag, filters);
-      const visible = results.filter(p => p.score !== 'ignore');
-      setProfiles(results);
+
+      // Marcar perfis já contactados
+      const enriched = results.map(p =>
+        contacted.has(p.username)
+          ? { ...p, prospectStatus: { ...p.prospectStatus, status: "sent" as const } }
+          : p
+      );
+
+      const visible = enriched.filter(p => p.score !== "ignore");
+      setProfiles(enriched);
       setDataSource({ source, apiError });
-      setStats({ found: results.length, filtered: results.length - visible.length });
+      setStats({ found: enriched.length, filtered: enriched.length - visible.length });
     } catch (error) {
       console.error("Erro na pesquisa:", error);
     } finally {
@@ -34,12 +53,13 @@ export default function SearchPage() {
     }
   };
 
-  const handleMarkAsSent = (profile: ScoredProfile) => {
+  const handleMarkAsSent = async (profile: ScoredProfile) => {
     const updated: ScoredProfile = {
       ...profile,
-      prospectStatus: { status: 'sent', contactedAt: new Date().toISOString() },
+      prospectStatus: { status: "sent", contactedAt: new Date().toISOString() },
     };
-    storage.saveProspect(updated);
+    await storage.saveProspect(updated);
+    setContacted(prev => new Set(prev).add(profile.username));
     setProfiles(prev => prev.map(p => p.username === profile.username ? updated : p));
   };
 
@@ -56,7 +76,6 @@ export default function SearchPage() {
         </div>
       </div>
 
-      {/* Filter Bar */}
       <FilterBar onSearch={handleSearch} isLoading={isLoading} />
 
       {/* API Source Banner */}
@@ -88,6 +107,7 @@ export default function SearchPage() {
           <span>
             {stats.found} perfis encontrados.
             {stats.filtered > 0 && ` ${stats.filtered} ocultados pelos filtros.`}
+            {contacted.size > 0 && ` ${[...profiles].filter(p => contacted.has(p.username)).length} já contactados.`}
           </span>
         </div>
       )}
@@ -98,14 +118,15 @@ export default function SearchPage() {
           <Loader2 size={48} className="text-accent animate-spin" />
           <p className="text-slate-400 animate-pulse">A analisar perfis do Instagram…</p>
         </div>
-      ) : profiles.filter(p => p.score !== 'ignore').length > 0 ? (
+      ) : profiles.filter(p => p.score !== "ignore").length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {profiles.filter(p => p.score !== 'ignore').map((profile) => (
+          {profiles.filter(p => p.score !== "ignore").map((profile) => (
             <ProfileCard
               key={profile.id}
               profile={profile}
               onGenerateDM={setSelectedProfile}
               onMarkAsSent={handleMarkAsSent}
+              alreadyContacted={contacted.has(profile.username)}
             />
           ))}
         </div>
@@ -113,12 +134,12 @@ export default function SearchPage() {
         <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-slate-800 rounded-3xl">
           <p className="text-slate-500">Escolhe um nicho e uma hashtag acima para começar.</p>
         </div>
-      ) : !isLoading && profiles.length > 0 ? (
+      ) : (
         <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-slate-800 rounded-3xl">
           <p className="text-slate-500">Nenhum perfil passou os filtros actuais.</p>
-          <p className="text-slate-600 text-sm mt-1">Tenta alargar o intervalo de seguidores ou reduzir o mínimo de posts.</p>
+          <p className="text-slate-600 text-sm mt-1">Tenta alargar o intervalo de seguidores.</p>
         </div>
-      ) : null}
+      )}
 
       <DMGenerator profile={selectedProfile} onClose={() => setSelectedProfile(null)} />
     </div>

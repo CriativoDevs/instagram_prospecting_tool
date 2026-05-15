@@ -8,10 +8,11 @@ interface ProfileCardProps {
   profile: ScoredProfile;
   onGenerateDM: (profile: ScoredProfile) => void;
   onMarkAsSent: (profile: ScoredProfile) => void;
+  alreadyContacted?: boolean;
 }
 
-export function ProfileCard({ profile, onGenerateDM, onMarkAsSent }: ProfileCardProps) {
-  const isSent = profile.prospectStatus?.status === 'sent';
+export function ProfileCard({ profile, onGenerateDM, onMarkAsSent, alreadyContacted = false }: ProfileCardProps) {
+  const isSent = alreadyContacted || profile.prospectStatus?.status === 'sent';
 
   const badges = {
     ideal: { label: "Ideal", color: "bg-success/20 text-success border-success/30" },
@@ -21,9 +22,16 @@ export function ProfileCard({ profile, onGenerateDM, onMarkAsSent }: ProfileCard
 
   return (
     <div className={cn(
-      "bg-navy-light border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-700 transition-all group",
-      profile.score === 'ideal' && "ring-1 ring-success/30"
+      "bg-navy-light border border-slate-800 rounded-2xl overflow-hidden hover:border-slate-700 transition-all group relative",
+      profile.score === 'ideal' && "ring-1 ring-success/30",
+      isSent && "opacity-60"
     )}>
+      {isSent && (
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1 px-2 py-0.5 bg-slate-900/90 border border-slate-700 rounded-full text-[10px] text-slate-400 font-medium">
+          <CheckCircle2 size={10} className="text-success" />
+          Já contactado
+        </div>
+      )}
       {/* Header Info */}
       <div className="p-5 flex gap-4">
         <div className="relative">
