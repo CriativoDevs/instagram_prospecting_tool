@@ -8,6 +8,11 @@
 
 # next.js
 /.next/
+
+# PWA generated files
+/public/sw.js
+/public/swe-worker-*.js
+/public/workbox-*.js
 /out/
 
 # production
