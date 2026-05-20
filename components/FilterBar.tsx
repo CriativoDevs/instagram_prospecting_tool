@@ -36,7 +36,14 @@ export function FilterBar({ onSearch, isLoading }: FilterBarProps) {
   }, []);
 
   const handleFilterChange = (patch: Partial<FilterConfig>) => {
-    const updated = { ...filters, ...patch };
+    let updated = { ...filters, ...patch };
+    // garante que min nunca ultrapassa max e vice-versa
+    if (patch.minFollowers !== undefined && updated.minFollowers > updated.maxFollowers) {
+      updated.maxFollowers = updated.minFollowers;
+    }
+    if (patch.maxFollowers !== undefined && updated.maxFollowers < updated.minFollowers) {
+      updated.minFollowers = updated.maxFollowers;
+    }
     setFilters(updated);
     saveFilters(updated);
   };

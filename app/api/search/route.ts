@@ -15,8 +15,8 @@ function scoreProfile(profile: InstagramProfile, cfg: ScoringConfig): ScoredProf
   if (profile.followersCount < cfg.minFollowers || profile.followersCount > cfg.maxFollowers)
     return { ...profile, score: 'ignore' };
 
-  // Dentro do sweet spot → ideal; resto → ok
-  const score = profile.followersCount >= idealMin && profile.followersCount <= idealMax
+  // Se o range for muito estreito, idealMin pode ultrapassar idealMax — nesse caso tudo é 'ok'
+  const score = idealMin <= idealMax && profile.followersCount >= idealMin && profile.followersCount <= idealMax
     ? 'ideal'
     : 'ok';
 
