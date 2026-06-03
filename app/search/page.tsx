@@ -15,7 +15,7 @@ export default function SearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [profiles, setProfiles] = useState<ScoredProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<ScoredProfile | null>(null);
-  const [stats, setStats] = useState({ found: 0, filtered: 0 });
+  const [stats, setStats] = useState({ analyzed: 0, visible: 0, filtered: 0 });
   const [dataSource, setDataSource] = useState<{ source: "real" | "mock"; apiError?: string } | null>(null);
   const [contacted, setContacted] = useState<Set<string>>(new Set());
 
@@ -45,7 +45,7 @@ export default function SearchPage() {
       const visible = enriched.filter(p => p.score !== "ignore");
       setProfiles(enriched);
       setDataSource({ source, apiError });
-      setStats({ found: enriched.length, filtered: enriched.length - visible.length });
+      setStats({ analyzed: enriched.length, visible: visible.length, filtered: enriched.length - visible.length });
     } catch (error) {
       console.error("Erro na pesquisa:", error);
     } finally {
@@ -93,6 +93,11 @@ export default function SearchPage() {
             <span className="font-semibold">
               {dataSource.source === "real" ? "API Real do Instagram" : "Dados Simulados (Mock)"}
             </span>
+            {dataSource.source === "real" && (
+              <p className="mt-1 text-green-400/70 text-xs">
+                Resultados baseados nas publicações mais recentes da hashtag. Perfis que não publicaram recentemente podem não aparecer.
+              </p>
+            )}
             {dataSource.apiError && (
               <p className="mt-1 text-yellow-500/80 text-xs">{dataSource.apiError}</p>
             )}
@@ -102,13 +107,20 @@ export default function SearchPage() {
 
       {/* Results Stats */}
       {profiles.length > 0 && (
-        <div className="flex items-center gap-2 bg-accent/5 border border-accent/20 p-4 rounded-xl text-accent text-sm font-medium">
-          <Info size={18} />
-          <span>
-            {stats.found} perfis encontrados.
-            {stats.filtered > 0 && ` ${stats.filtered} ocultados pelos filtros.`}
-            {contacted.size > 0 && ` ${[...profiles].filter(p => contacted.has(p.username)).length} já contactados.`}
-          </span>
+        <div className="flex flex-col gap-1 bg-accent/5 border border-accent/20 p-4 rounded-xl text-accent text-sm font-medium">
+          <div className="flex items-center gap-2">
+            <Info size={18} className="shrink-0" />
+            <span>
+              <strong>{stats.visible}</strong> perfis dentro dos critérios
+              {stats.analyzed > 0 && <span className="font-normal text-accent/70"> (de {stats.analyzed} analisados)</span>}
+              {contacted.size > 0 && ` · ${profiles.filter(p => contacted.has(p.username)).length} já contactados`}
+            </span>
+          </div>
+          {stats.filtered > 0 && (
+            <p className="text-xs text-accent/50 pl-7">
+              {stats.filtered} {stats.filtered === 1 ? "perfil ocultado" : "perfis ocultados"} por não cumprirem os filtros actuais.
+            </p>
+          )}
         </div>
       )}
 

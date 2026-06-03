@@ -48,7 +48,7 @@ async function searchWithApify(hashtag: string, apiToken: string): Promise<Insta
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hashtags: [hashtag], resultsLimit: 30 }),
+      body: JSON.stringify({ hashtags: [hashtag], resultsLimit: 100 }),
       signal: AbortSignal.timeout(120_000),
     }
   );
@@ -68,7 +68,7 @@ async function searchWithApify(hashtag: string, apiToken: string): Promise<Insta
       usernames.push(post.ownerUsername);
     }
   }
-  usernames.splice(20);
+  usernames.splice(50);
 
   if (usernames.length === 0) {
     throw new Error(`Nenhum post encontrado para a hashtag "#${hashtag}".`);
