@@ -39,3 +39,6 @@ next-env.d.ts
 
 # csv data
 *.csv
+
+# open issues
+ipt-open-issues.json
