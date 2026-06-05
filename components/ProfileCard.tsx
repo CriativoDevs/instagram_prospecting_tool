@@ -1,7 +1,7 @@
 "use client";
 
 import { ScoredProfile } from "@/types/instagram";
-import { ExternalLink, MessageSquare, CheckCircle2, User, Image as ImageIcon } from "lucide-react";
+import { ExternalLink, MessageSquare, CheckCircle2, User, Image as ImageIcon, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ProfileCardProps {
@@ -79,6 +79,17 @@ export function ProfileCard({ profile, onGenerateDM, onMarkAsSent, alreadyContac
           <span className="text-sm font-bold text-slate-200">{profile.mediaCount}</span>
         </div>
       </div>
+
+      {/* Localização / distância */}
+      {(profile.city || profile.distanceKm !== undefined) && (
+        <div className="px-5 pb-2 flex items-center gap-1.5 text-xs text-slate-400">
+          <MapPin size={12} className="text-accent shrink-0" />
+          {profile.city && <span>{profile.city}</span>}
+          {profile.distanceKm !== undefined && (
+            <span className="text-accent font-medium">· {profile.distanceKm} km</span>
+          )}
+        </div>
+      )}
 
       {/* Bio */}
       <div className="p-5 h-24 overflow-hidden">

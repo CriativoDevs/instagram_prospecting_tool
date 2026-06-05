@@ -5,6 +5,8 @@ export interface SearchResult {
   profiles: ScoredProfile[];
   source: "real" | "mock";
   apiError?: string;
+  geoError?: string;
+  geoHashtag?: string;
 }
 
 export async function searchInstagramHashtag(
@@ -16,6 +18,11 @@ export async function searchInstagramHashtag(
     minFollowers: String(filters.minFollowers),
     maxFollowers: String(filters.maxFollowers),
     minPosts: String(filters.minPosts),
+    maxProfiles: String(filters.maxProfiles),
+    searchMode: filters.searchMode,
+    ...(filters.address && { address: filters.address }),
+    ...(filters.radius !== undefined && { radius: String(filters.radius) }),
+    ...(filters.countryCode && { countryCode: filters.countryCode }),
   });
 
   const res = await fetch(`/api/search?${params}`);
@@ -30,5 +37,7 @@ export async function searchInstagramHashtag(
     profiles: json.data as ScoredProfile[],
     source: json.source,
     apiError: json.apiError,
+    geoError: json.geoError,
+    geoHashtag: json.geoHashtag,
   };
 }

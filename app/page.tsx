@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Search, History, BarChart3, Users, MessageSquare, CheckCircle2 } from "lucide-react";
 import { storage } from "@/lib/storage";
 import { useEffect, useState } from "react";
+import { ApifyCredits } from "@/components/ApifyCredits";
 
 export default function Home() {
   const [stats, setStats] = useState({
@@ -23,13 +24,16 @@ export default function Home() {
   return (
     <div className="flex flex-col gap-8 p-8 max-w-7xl mx-auto w-full">
       {/* Header Section */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-bold tracking-tight text-white">
-          TimelyOne <span className="text-accent">Prospecting</span>
-        </h1>
-        <p className="text-slate-400 text-lg">
-          Encontre os melhores parceiros de negócio no Instagram de forma estratégica.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-4xl font-bold tracking-tight text-white">
+            TimelyOne <span className="text-accent">Prospecting</span>
+          </h1>
+          <p className="text-slate-400 text-lg">
+            Encontre os melhores parceiros de negócio no Instagram de forma estratégica.
+          </p>
+        </div>
+        <ApifyCredits />
       </div>
 
       {/* Stats Overview */}

@@ -8,6 +8,13 @@ export interface InstagramProfile {
   mediaCount: number;
   isVerified: boolean;
   profileUrl: string;
+  latitude?: number;
+  longitude?: number;
+  city?: string;
+}
+
+export interface ScoredProfileGeo {
+  distanceKm?: number;
 }
 
 export interface ProspectStatus {
@@ -18,7 +25,7 @@ export interface ProspectStatus {
   dmText?: string;
 }
 
-export type ScoredProfile = InstagramProfile & {
+export type ScoredProfile = InstagramProfile & ScoredProfileGeo & {
   score: 'ideal' | 'ok' | 'ignore';
   prospectStatus?: ProspectStatus;
 }
