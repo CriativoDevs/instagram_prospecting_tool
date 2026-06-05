@@ -8,15 +8,16 @@ import { searchInstagramHashtag } from "@/lib/instagram";
 import { storage } from "@/lib/storage";
 import { ScoredProfile } from "@/types/instagram";
 import { FilterConfig } from "@/lib/niches";
-import { ArrowLeft, Loader2, Info, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, Loader2, Info, Wifi, WifiOff, MapPinOff } from "lucide-react";
 import Link from "next/link";
+import { ApifyCredits } from "@/components/ApifyCredits";
 
 export default function SearchPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [profiles, setProfiles] = useState<ScoredProfile[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<ScoredProfile | null>(null);
   const [stats, setStats] = useState({ analyzed: 0, visible: 0, filtered: 0 });
-  const [dataSource, setDataSource] = useState<{ source: "real" | "mock"; apiError?: string } | null>(null);
+  const [dataSource, setDataSource] = useState<{ source: "real" | "mock"; apiError?: string; geoError?: string; geoHashtag?: string } | null>(null);
   const [contacted, setContacted] = useState<Set<string>>(new Set());
 
   // Carrega a lista de já contactados ao iniciar
@@ -33,7 +34,7 @@ export default function SearchPage() {
     setIsLoading(true);
     setDataSource(null);
     try {
-      const { profiles: results, source, apiError } = await searchInstagramHashtag(hashtag, filters);
+      const { profiles: results, source, apiError, geoError, geoHashtag } = await searchInstagramHashtag(hashtag, filters);
 
       // Marcar perfis já contactados
       const enriched = results.map(p =>
@@ -44,7 +45,7 @@ export default function SearchPage() {
 
       const visible = enriched.filter(p => p.score !== "ignore");
       setProfiles(enriched);
-      setDataSource({ source, apiError });
+      setDataSource({ source, apiError, geoError, geoHashtag });
       setStats({ analyzed: enriched.length, visible: visible.length, filtered: enriched.length - visible.length });
     } catch (error) {
       console.error("Erro na pesquisa:", error);
@@ -66,14 +67,17 @@ export default function SearchPage() {
   return (
     <div className="flex flex-col gap-6 p-8 max-w-7xl mx-auto w-full">
       {/* Navigation */}
-      <div className="flex items-center gap-4">
-        <Link href="/" className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors">
-          <ArrowLeft size={20} />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold">Pesquisa por Hashtag</h1>
-          <p className="text-sm text-slate-500">Escolhe um nicho, seleciona uma hashtag e ajusta os filtros.</p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/" className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition-colors">
+            <ArrowLeft size={20} />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold">Pesquisa por Hashtag</h1>
+            <p className="text-sm text-slate-500">Escolhe um nicho, seleciona uma hashtag e ajusta os filtros.</p>
+          </div>
         </div>
+        <ApifyCredits />
       </div>
 
       <FilterBar onSearch={handleSearch} isLoading={isLoading} />
@@ -95,12 +99,26 @@ export default function SearchPage() {
             </span>
             {dataSource.source === "real" && (
               <p className="mt-1 text-green-400/70 text-xs">
-                Resultados baseados nas publicações mais recentes da hashtag. Perfis que não publicaram recentemente podem não aparecer.
+                {dataSource.geoHashtag
+                  ? `A pesquisar por #${dataSource.geoHashtag} — hashtag local gerada automaticamente a partir do endereço.`
+                  : "Resultados baseados nas publicações mais recentes da hashtag. Perfis que não publicaram recentemente podem não aparecer."
+                }
               </p>
             )}
             {dataSource.apiError && (
               <p className="mt-1 text-yellow-500/80 text-xs">{dataSource.apiError}</p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Geo Error Banner */}
+      {dataSource?.geoError && (
+        <div className="flex items-start gap-3 p-4 rounded-xl border bg-orange-500/10 border-orange-500/30 text-orange-400 text-sm">
+          <MapPinOff size={18} className="shrink-0 mt-0.5" />
+          <div>
+            <span className="font-semibold">Endereço não encontrado</span>
+            <p className="mt-1 text-orange-400/70 text-xs">{dataSource.geoError}</p>
           </div>
         </div>
       )}

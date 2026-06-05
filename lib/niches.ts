@@ -9,12 +9,34 @@ export interface FilterConfig {
   minFollowers: number;
   maxFollowers: number;
   minPosts: number;
+  maxProfiles: number;
+  searchMode: 'hashtag' | 'geo';
+  address?: string;
+  radius?: number;
+  countryCode?: string;
 }
+
+export const GEO_COUNTRIES = [
+  { code: "pt", label: "Portugal", flag: "🇵🇹" },
+  { code: "br", label: "Brasil", flag: "🇧🇷" },
+  { code: "es", label: "Espanha", flag: "🇪🇸" },
+  { code: "gb", label: "Reino Unido", flag: "🇬🇧" },
+  { code: "fr", label: "França", flag: "🇫🇷" },
+  { code: "de", label: "Alemanha", flag: "🇩🇪" },
+  { code: "us", label: "EUA", flag: "🇺🇸" },
+] as const;
+
+export const GEO_RADIUS_OPTIONS = [1, 5, 10, 25, 50] as const;
+export type GeoRadius = typeof GEO_RADIUS_OPTIONS[number];
 
 export const DEFAULT_FILTERS: FilterConfig = {
   minFollowers: 200,
   maxFollowers: 5000,
   minPosts: 10,
+  maxProfiles: 50,
+  searchMode: 'hashtag',
+  radius: 10,
+  countryCode: 'pt',
 };
 
 export const NICHES: Niche[] = [
