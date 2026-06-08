@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Instagram Prospecting DM Sender",
+  "version": "1.0.0",
+  "description": "Envia DMs agendadas pelo Instagram a partir da fila da app Timelyone.",
+
+  "permissions": [
+    "storage",
+    "alarms",
+    "tabs"
+  ],
+
+  "host_permissions": [
+    "https://www.instagram.com/*",
+    "https://instagram-prospecting-tool.vercel.app/*",
+    "http://localhost:3000/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["https://www.instagram.com/*"],
+      "js": ["content_script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "DM Sender"
+  },
+
+  "icons": {}
+
+}

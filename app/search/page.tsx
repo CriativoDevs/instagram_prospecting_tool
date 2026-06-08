@@ -8,7 +8,7 @@ import { searchInstagramHashtag } from "@/lib/instagram";
 import { storage } from "@/lib/storage";
 import { ScoredProfile } from "@/types/instagram";
 import { FilterConfig } from "@/lib/niches";
-import { ArrowLeft, Loader2, Info, Wifi, WifiOff, MapPinOff } from "lucide-react";
+import { ArrowLeft, Loader2, Info, Wifi, WifiOff, MapPinOff, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { ApifyCredits } from "@/components/ApifyCredits";
 
@@ -19,6 +19,22 @@ export default function SearchPage() {
   const [stats, setStats] = useState({ analyzed: 0, visible: 0, filtered: 0 });
   const [dataSource, setDataSource] = useState<{ source: "real" | "mock"; apiError?: string; geoError?: string; geoHashtag?: string } | null>(null);
   const [contacted, setContacted] = useState<Set<string>>(new Set());
+  const [showIgnored, setShowIgnored] = useState(false);
+
+  const CACHE_KEY = "search_cache";
+
+  // Restaurar pesquisa do sessionStorage ao fazer refresh
+  useEffect(() => {
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        const { profiles: p, dataSource: ds, stats: st } = JSON.parse(cached);
+        setProfiles(p);
+        setDataSource(ds);
+        setStats(st);
+      } catch { /* cache corrompida */ }
+    }
+  }, []);
 
   // Carrega a lista de já contactados ao iniciar
   useEffect(() => {
@@ -44,9 +60,13 @@ export default function SearchPage() {
       );
 
       const visible = enriched.filter(p => p.score !== "ignore");
+      const newDataSource = { source, apiError, geoError, geoHashtag };
+      const newStats = { analyzed: enriched.length, visible: visible.length, filtered: enriched.length - visible.length };
       setProfiles(enriched);
-      setDataSource({ source, apiError, geoError, geoHashtag });
-      setStats({ analyzed: enriched.length, visible: visible.length, filtered: enriched.length - visible.length });
+      setDataSource(newDataSource);
+      setStats(newStats);
+      // Guardar em sessionStorage para sobreviver a refresh sem custar créditos Apify
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify({ profiles: enriched, dataSource: newDataSource, stats: newStats }));
     } catch (error) {
       console.error("Erro na pesquisa:", error);
     } finally {
@@ -135,9 +155,18 @@ export default function SearchPage() {
             </span>
           </div>
           {stats.filtered > 0 && (
-            <p className="text-xs text-accent/50 pl-7">
-              {stats.filtered} {stats.filtered === 1 ? "perfil ocultado" : "perfis ocultados"} por não cumprirem os filtros actuais.
-            </p>
+            <div className="flex items-center justify-between pl-7">
+              <p className="text-xs text-accent/50">
+                {stats.filtered} {stats.filtered === 1 ? "perfil ocultado" : "perfis ocultados"} por não cumprirem os filtros actuais.
+              </p>
+              <button
+                onClick={() => setShowIgnored(v => !v)}
+                className="flex items-center gap-1.5 text-xs text-accent/60 hover:text-accent transition-colors"
+              >
+                {showIgnored ? <EyeOff size={13} /> : <Eye size={13} />}
+                {showIgnored ? "Ocultar" : "Mostrar"}
+              </button>
+            </div>
           )}
         </div>
       )}
@@ -158,6 +187,16 @@ export default function SearchPage() {
               onMarkAsSent={handleMarkAsSent}
               alreadyContacted={contacted.has(profile.username)}
             />
+          ))}
+          {showIgnored && profiles.filter(p => p.score === "ignore").map((profile) => (
+            <div key={profile.id} className="opacity-60 ring-1 ring-slate-700/40 rounded-2xl">
+              <ProfileCard
+                profile={profile}
+                onGenerateDM={setSelectedProfile}
+                onMarkAsSent={handleMarkAsSent}
+                alreadyContacted={contacted.has(profile.username)}
+              />
+            </div>
           ))}
         </div>
       ) : !isLoading && profiles.length === 0 ? (

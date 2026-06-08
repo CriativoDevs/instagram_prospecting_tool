@@ -36,7 +36,7 @@ export const storage = {
     });
   },
 
-  updateStatus: async (username: string, status: "replied" | "converted"): Promise<void> => {
+  updateStatus: async (username: string, status: "replied" | "converted" | "rejected"): Promise<void> => {
     await fetch(`/api/prospects/${encodeURIComponent(username)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -52,19 +52,22 @@ export const storage = {
 
   getStats: (prospects: ScoredProfile[]) => {
     const contacted = prospects.filter(p =>
-      ["sent", "replied", "converted"].includes(p.prospectStatus?.status ?? "")
+      ["sent", "replied", "converted", "rejected"].includes(p.prospectStatus?.status ?? "")
     );
     const replied = prospects.filter(p =>
       ["replied", "converted"].includes(p.prospectStatus?.status ?? "")
     );
     const converted = prospects.filter(p => p.prospectStatus?.status === "converted");
+    const rejected = prospects.filter(p => p.prospectStatus?.status === "rejected");
+    const responded = replied.length + rejected.length;
 
     return {
       totalFound: prospects.length,
       contacted: contacted.length,
       replied: replied.length,
       converted: converted.length,
-      replyRate: contacted.length > 0 ? Math.round((replied.length / contacted.length) * 100) : 0,
+      rejected: rejected.length,
+      replyRate: contacted.length > 0 ? Math.round((responded / contacted.length) * 100) : 0,
     };
   },
 

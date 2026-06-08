@@ -37,7 +37,9 @@ async function searchWithApify(hashtag: string, apiToken: string, maxProfiles: n
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hashtags: [hashtag], resultsLimit: maxProfiles * 2 }),
+      // Pedimos 6× mais posts do que perfis pretendidos — hashtags populares têm muitos
+      // posts do mesmo utilizador, pelo que a taxa posts→perfis únicos é baixa (~10-20%).
+      body: JSON.stringify({ hashtags: [hashtag], resultsLimit: maxProfiles * 6 }),
       signal: AbortSignal.timeout(120_000),
     }
   );

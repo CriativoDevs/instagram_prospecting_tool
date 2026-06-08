@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { storage, getLocalProspects, clearLocalProspects } from "@/lib/storage";
 import { ScoredProfile } from "@/types/instagram";
-import { ArrowLeft, ExternalLink, Download, MessageSquare, TrendingUp, Send, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, ExternalLink, Download, MessageSquare, TrendingUp, Send, Trash2, Upload, XCircle } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +12,8 @@ const STATUS_CONFIG = {
   sent:      { label: "Enviada",   color: "bg-blue-500/10 border-blue-500/30 text-blue-400" },
   replied:   { label: "Respondeu", color: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" },
   converted: { label: "Converteu", color: "bg-green-500/10 border-green-500/30 text-green-400" },
-  ignored:   { label: "Ignorada",  color: "bg-red-500/10 border-red-500/30 text-red-400" },
+  ignored:   { label: "Ignorada",  color: "bg-slate-500/10 border-slate-500/30 text-slate-500" },
+  rejected:  { label: "Recusou",   color: "bg-red-500/10 border-red-500/30 text-red-400" },
 };
 
 function formatDate(iso?: string) {
@@ -51,7 +52,7 @@ export default function HistoryPage() {
     setMigrating(false);
   };
 
-  const handleUpdateStatus = async (username: string, status: "replied" | "converted") => {
+  const handleUpdateStatus = async (username: string, status: "replied" | "converted" | "rejected") => {
     await storage.updateStatus(username, status);
     await load();
   };
@@ -63,7 +64,7 @@ export default function HistoryPage() {
 
   const handleExport = () => {
     if (prospects.length === 0) return;
-    const headers = ["Username", "Nome", "Seguidores", "Status", "Data Envio", "Data Resposta", "Data Conversão", "Perfil"];
+    const headers = ["Username", "Nome", "Seguidores", "Status", "Data Envio", "Data Resposta", "Data Conversão", "Data Recusa", "Perfil"];
     const rows = prospects.map(p => [
       `@${p.username}`,
       p.fullName || "",
@@ -72,6 +73,7 @@ export default function HistoryPage() {
       formatDate(p.prospectStatus?.contactedAt),
       formatDate(p.prospectStatus?.repliedAt),
       formatDate(p.prospectStatus?.convertedAt),
+      formatDate(p.prospectStatus?.rejectedAt),
       p.profileUrl,
     ]);
     const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
@@ -83,7 +85,7 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className="flex flex-col gap-8 p-8 max-w-7xl mx-auto w-full">
+    <div className="flex flex-col gap-8 p-4 md:p-8 max-w-7xl mx-auto w-full">
       {/* Navigation */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -101,7 +103,7 @@ export default function HistoryPage() {
           className="flex items-center gap-2 px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-300 hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <Download size={18} />
-          <span>Exportar CSV</span>
+          <span className="hidden sm:inline">Exportar CSV</span>
         </button>
       </div>
 
@@ -128,12 +130,13 @@ export default function HistoryPage() {
       )}
 
       {/* Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
-          { label: "Mensagens enviadas", value: stats.contacted, icon: Send,         color: "text-blue-400" },
-          { label: "Responderam",        value: stats.replied,   icon: MessageSquare, color: "text-yellow-400" },
-          { label: "Taxa de resposta",   value: `${stats.replyRate}%`, icon: TrendingUp, color: "text-accent" },
-          { label: "Conversões",         value: stats.converted, icon: TrendingUp,   color: "text-green-400" },
+          { label: "Mensagens enviadas", value: stats.contacted,        icon: Send,         color: "text-blue-400" },
+          { label: "Responderam",        value: stats.replied,          icon: MessageSquare, color: "text-yellow-400" },
+          { label: "Taxa de resposta",   value: `${stats.replyRate}%`,  icon: TrendingUp,   color: "text-accent" },
+          { label: "Conversões",         value: stats.converted,        icon: TrendingUp,   color: "text-green-400" },
+          { label: "Recusaram",          value: stats.rejected,         icon: XCircle,      color: "text-red-400" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col gap-2">
             <div className="flex items-center justify-between">
@@ -145,8 +148,94 @@ export default function HistoryPage() {
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+      {/* Mobile cards (visible only on small screens) */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {loading ? (
+          <p className="text-center text-slate-500 text-sm py-12">A carregar…</p>
+        ) : prospects.length === 0 ? (
+          <p className="text-center text-slate-500 text-sm py-12">Ainda não existem contactos no histórico.</p>
+        ) : prospects.map((prospect) => {
+          const status = prospect.prospectStatus?.status || "pending";
+          const cfg = STATUS_CONFIG[status];
+          return (
+            <div key={prospect.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col gap-3">
+              {/* Header row: avatar + name + status */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center">
+                  {prospect.profilePictureUrl
+                    ? <img src={prospect.profilePictureUrl} alt="" className="w-full h-full object-cover" />
+                    : <span className="text-xs">{prospect.username[0].toUpperCase()}</span>
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white truncate">@{prospect.username}</p>
+                  <p className="text-[10px] text-slate-500">{prospect.followersCount.toLocaleString()} seguidores</p>
+                </div>
+                <span className={cn("text-[10px] font-bold px-2 py-1 rounded-full border shrink-0", cfg.color)}>
+                  {cfg.label}
+                </span>
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-3 gap-2 text-[11px]">
+                <div>
+                  <p className="text-slate-600 uppercase tracking-wider font-bold mb-0.5">Enviada</p>
+                  <p className="text-slate-400">{formatDate(prospect.prospectStatus?.contactedAt)}</p>
+                </div>
+                <div>
+                  <p className="text-slate-600 uppercase tracking-wider font-bold mb-0.5">Respondeu</p>
+                  <p className="text-slate-400">{formatDate(prospect.prospectStatus?.repliedAt)}</p>
+                </div>
+                <div>
+                  <p className="text-slate-600 uppercase tracking-wider font-bold mb-0.5">Converteu</p>
+                  <p className="text-slate-400">{formatDate(prospect.prospectStatus?.convertedAt)}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {(status === "sent" || status === "rejected") && (
+                  <button
+                    onClick={() => handleUpdateStatus(prospect.username, "replied")}
+                    className="px-3 py-1.5 text-xs rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 transition-colors"
+                  >
+                    Respondeu
+                  </button>
+                )}
+                {(status === "sent" || status === "replied" || status === "rejected") && (
+                  <button
+                    onClick={() => handleUpdateStatus(prospect.username, "converted")}
+                    className="px-3 py-1.5 text-xs rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 transition-colors"
+                  >
+                    Converteu
+                  </button>
+                )}
+                {(status === "sent" || status === "replied") && (
+                  <button
+                    onClick={() => handleUpdateStatus(prospect.username, "rejected")}
+                    className="px-3 py-1.5 text-xs rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-colors"
+                  >
+                    Recusou
+                  </button>
+                )}
+                <div className="ml-auto flex items-center gap-1">
+                  <a href={prospect.profileUrl} target="_blank" rel="noopener noreferrer"
+                    className="p-2 text-slate-500 hover:text-accent transition-colors">
+                    <ExternalLink size={15} />
+                  </a>
+                  <button onClick={() => handleDelete(prospect.username)}
+                    className="p-2 text-slate-500 hover:text-red-400 transition-colors">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop table (hidden on small screens) */}
+      <div className="hidden md:block bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -195,7 +284,7 @@ export default function HistoryPage() {
                     <td className="px-6 py-4 text-sm text-slate-400">{formatDate(prospect.prospectStatus?.convertedAt)}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-1">
-                        {status === "sent" && (
+                        {(status === "sent" || status === "rejected") && (
                           <button
                             onClick={() => handleUpdateStatus(prospect.username, "replied")}
                             className="px-3 py-1 text-xs rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/20 transition-colors"
@@ -203,12 +292,20 @@ export default function HistoryPage() {
                             Respondeu
                           </button>
                         )}
-                        {(status === "sent" || status === "replied") && (
+                        {(status === "sent" || status === "replied" || status === "rejected") && (
                           <button
                             onClick={() => handleUpdateStatus(prospect.username, "converted")}
                             className="px-3 py-1 text-xs rounded-lg bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500/20 transition-colors"
                           >
                             Converteu
+                          </button>
+                        )}
+                        {(status === "sent" || status === "replied") && (
+                          <button
+                            onClick={() => handleUpdateStatus(prospect.username, "rejected")}
+                            className="px-3 py-1 text-xs rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-colors"
+                          >
+                            Recusou
                           </button>
                         )}
                         <a href={prospect.profileUrl} target="_blank" rel="noopener noreferrer"
