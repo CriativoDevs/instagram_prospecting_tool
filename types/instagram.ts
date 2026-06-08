@@ -18,10 +18,11 @@ export interface ScoredProfileGeo {
 }
 
 export interface ProspectStatus {
-  status: 'pending' | 'sent' | 'replied' | 'converted' | 'ignored';
+  status: 'pending' | 'sent' | 'replied' | 'converted' | 'ignored' | 'rejected';
   contactedAt?: string;
   repliedAt?: string;
   convertedAt?: string;
+  rejectedAt?: string;
   dmText?: string;
 }
 

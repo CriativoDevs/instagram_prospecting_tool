@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Search, History, BarChart3, Users, MessageSquare, CheckCircle2 } from "lucide-react";
+import { Search, History, BarChart3, Users, MessageSquare, CheckCircle2, XCircle } from "lucide-react";
 import { storage } from "@/lib/storage";
 import { useEffect, useState } from "react";
 import { ApifyCredits } from "@/components/ApifyCredits";
@@ -12,6 +12,7 @@ export default function Home() {
     contacted: 0,
     replied: 0,
     converted: 0,
+    rejected: 0,
     replyRate: 0
   });
 
@@ -37,12 +38,13 @@ export default function Home() {
       </div>
 
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {[
-          { label: "Perfis Encontrados", value: stats.totalFound.toString(), icon: Users, color: "text-blue-400" },
-          { label: "Contactos Feitos", value: stats.contacted.toString(), icon: MessageSquare, color: "text-accent" },
-          { label: "Taxa de Resposta", value: `${stats.replyRate}%`, icon: BarChart3, color: "text-purple-400" },
-          { label: "Conversões", value: stats.converted.toString(), icon: CheckCircle2, color: "text-success" },
+          { label: "Perfis Encontrados", value: stats.totalFound.toString(),    icon: Users,        color: "text-blue-400" },
+          { label: "Contactos Feitos",   value: stats.contacted.toString(),     icon: MessageSquare, color: "text-accent" },
+          { label: "Taxa de Resposta",   value: `${stats.replyRate}%`,          icon: BarChart3,    color: "text-purple-400" },
+          { label: "Conversões",         value: stats.converted.toString(),     icon: CheckCircle2, color: "text-success" },
+          { label: "Recusaram",          value: stats.rejected.toString(),      icon: XCircle,      color: "text-red-400" },
         ].map((stat, i) => (
           <div key={i} className="bg-navy-light border border-slate-800 p-6 rounded-xl flex items-center gap-4">
             <div className={`p-3 rounded-lg bg-slate-900 ${stat.color}`}>
