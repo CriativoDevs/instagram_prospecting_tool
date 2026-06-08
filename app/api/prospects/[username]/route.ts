@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { redis, PROSPECTS_KEY } from "@/lib/redis";
-import { ScoredProfile } from "@/types/instagram";
+import { ProspectStatus, ScoredProfile } from "@/types/instagram";
 
 // PATCH — actualizar status de um prospect
 export async function PATCH(
@@ -14,7 +14,7 @@ export async function PATCH(
 
   const now = new Date().toISOString();
   const updatedStatus = {
-    status: status as ScoredProfile["prospectStatus"]["status"],
+    status: status as ProspectStatus["status"],
     ...(status === "sent" && { contactedAt: now }),
     ...(status === "replied" && { repliedAt: now }),
     ...(status === "converted" && { convertedAt: now }),
