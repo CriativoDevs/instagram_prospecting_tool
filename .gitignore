@@ -39,6 +39,7 @@ next-env.d.ts
 
 # csv data
 *.csv
+!public/scripts-modelo.csv
 
 # open issues
 ipt-open-issues.json

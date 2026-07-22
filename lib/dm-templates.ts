@@ -9,7 +9,7 @@ type BusinessType =
   | "tatuagem"
   | "generico";
 
-function detectBusinessType(profile: ScoredProfile): BusinessType {
+export function detectBusinessType(profile: ScoredProfile): BusinessType {
   const text = [
     profile.biography,
     profile.fullName,
@@ -27,6 +27,16 @@ function detectBusinessType(profile: ScoredProfile): BusinessType {
   if (text.match(/spa|massagem|wellness|bemestar|relaxamento|holistic/)) return "spa";
   return "generico";
 }
+
+export const SEGMENTO_LABELS: Record<BusinessType, string> = {
+  barbearia: "barbearia",
+  salao: "salão de cabeleireiro",
+  estetica: "centro de estética",
+  unhas: "nail studio",
+  spa: "spa",
+  tatuagem: "estúdio de tatuagem",
+  generico: "negócio de beleza",
+};
 
 const TEMPLATES: Record<BusinessType, (name: string) => string> = {
   barbearia: (name) =>

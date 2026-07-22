@@ -6,3 +6,4 @@ export const redis = new Redis({
 });
 
 export const PROSPECTS_KEY = "timelyone:prospects";
+export const SCRIPTS_KEY = "timelyone:scripts";
