@@ -1,4 +1,10 @@
-import { applyScript, SCRIPT_STAGES, isValidStage } from "@/lib/scripts";
+import {
+  applyScript,
+  SCRIPT_STAGES,
+  isValidStage,
+  parseScriptsCsv,
+  scriptsToCsv,
+} from "@/lib/scripts";
 import type { Script } from "@/types/scripts";
 import type { ScoredProfile } from "@/types/instagram";
 
@@ -65,5 +71,57 @@ describe("isValidStage", () => {
 
   it("rejeita estagios invalidos", () => {
     expect(isValidStage("qualquer_coisa")).toBe(false);
+  });
+});
+
+describe("parseScriptsCsv", () => {
+  it("faz parse de linhas validas", () => {
+    const csv = 'stage,title,body\nprimeiro_contacto,Ola,"Ola {{nome}}!"';
+    const { valid, skipped } = parseScriptsCsv(csv);
+    expect(valid).toEqual([
+      { stage: "primeiro_contacto", title: "Ola", body: "Ola {{nome}}!" },
+    ]);
+    expect(skipped).toBe(0);
+  });
+
+  it("ignora linha com stage invalido", () => {
+    const csv = 'stage,title,body\nnao_existe,Ola,"Ola {{nome}}!"';
+    const { valid, skipped } = parseScriptsCsv(csv);
+    expect(valid).toHaveLength(0);
+    expect(skipped).toBe(1);
+  });
+
+  it("ignora linha com body vazio", () => {
+    const csv = "stage,title,body\nprimeiro_contacto,Ola,";
+    const { valid, skipped } = parseScriptsCsv(csv);
+    expect(valid).toHaveLength(0);
+    expect(skipped).toBe(1);
+  });
+
+  it("lida com campos entre aspas contendo virgulas", () => {
+    const csv = 'stage,title,body\nprimeiro_contacto,Ola,"Ola {{nome}}, tudo bem?"';
+    const { valid } = parseScriptsCsv(csv);
+    expect(valid[0].body).toBe("Ola {{nome}}, tudo bem?");
+  });
+});
+
+describe("scriptsToCsv / parseScriptsCsv round-trip", () => {
+  it("exporta e reimporta o mesmo conteudo", () => {
+    const scripts: Script[] = [
+      {
+        id: "1",
+        stage: "primeiro_contacto",
+        title: "Ola",
+        body: 'Ola {{nome}}, "tudo bem"?',
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ];
+    const csv = scriptsToCsv(scripts);
+    const { valid, skipped } = parseScriptsCsv(csv);
+    expect(skipped).toBe(0);
+    expect(valid).toEqual([
+      { stage: "primeiro_contacto", title: "Ola", body: 'Ola {{nome}}, "tudo bem"?' },
+    ]);
   });
 });
