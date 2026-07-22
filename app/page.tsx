@@ -59,7 +59,7 @@ export default function Home() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link 
           href="/search"
           className="group relative overflow-hidden bg-navy-light border border-slate-800 p-8 rounded-2xl hover:border-accent/50 transition-all duration-300"
@@ -93,6 +93,24 @@ export default function Home() {
           </div>
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <History size={120} />
+          </div>
+        </Link>
+
+        <Link
+          href="/scripts"
+          className="group relative overflow-hidden bg-navy-light border border-slate-800 p-8 rounded-2xl hover:border-emerald-500/50 transition-all duration-300"
+        >
+          <div className="relative z-10">
+            <div className="w-12 h-12 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+              <MessageSquare size={28} />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Scripts</h2>
+            <p className="text-slate-400">
+              Crie e organize mensagens pré-definidas por estágio, com suporte a follow-up.
+            </p>
+          </div>
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <MessageSquare size={120} />
           </div>
         </Link>
       </div>
