@@ -1,0 +1,4 @@
+stage,title,body
+primeiro_contacto,Primeiro contacto padrão,"Olá {{nome}}! Vi o vosso trabalho como {{segmento}} e fiquei impressionado."
+followup_1_semana,Follow-up 1 semana,"Passei por aqui de novo {{nome}} — ainda interessados em conhecer a nossa plataforma para {{segmento}}?"
+followup_2_semanas,Follow-up 2 semanas,"Olá {{nome}}, última tentativa — se mudarem de ideias sobre a gestão do vosso negócio, estamos por aqui."
