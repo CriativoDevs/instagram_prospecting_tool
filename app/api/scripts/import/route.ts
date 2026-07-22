@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { redis, SCRIPTS_KEY } from "@/lib/redis";
+import { isValidStage } from "@/lib/scripts";
 import { Script } from "@/types/scripts";
 import { randomUUID } from "crypto";
 
@@ -13,10 +14,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "rows deve ser um array" }, { status: 400 });
   }
 
+  const validRows = rows.filter((row) => isValidStage(row.stage) && row.title && row.body);
+
   const scripts = (await redis.get<Script[]>(SCRIPTS_KEY)) ?? [];
   const now = new Date().toISOString();
 
-  const created: Script[] = rows.map((row) => ({
+  const created: Script[] = validRows.map((row) => ({
     id: randomUUID(),
     stage: row.stage as Script["stage"],
     title: row.title,
