@@ -1,7 +1,9 @@
 "use client";
 
 import { ScoredProfile } from "@/types/instagram";
+import { Script } from "@/types/scripts";
 import { generateDM } from "@/lib/dm-templates";
+import { applyScript, SCRIPT_STAGES } from "@/lib/scripts";
 import { X, Copy, Check, MessageSquare, Send, AlertCircle, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -12,18 +14,39 @@ interface DMGeneratorProps {
 }
 
 type SendState = "idle" | "sending" | "queued" | "error";
+const AUTO_OPTION = "auto";
 
 export function DMGenerator({ profile, onClose }: DMGeneratorProps) {
   const [copied, setCopied] = useState(false);
   const [dmText, setDmText] = useState("");
   const [sendState, setSendState] = useState<SendState>("idle");
   const [sendError, setSendError] = useState<string | null>(null);
+  const [scripts, setScripts] = useState<Script[]>([]);
+  const [selectedScriptId, setSelectedScriptId] = useState(AUTO_OPTION);
 
   useEffect(() => {
     if (profile) {
+      setSelectedScriptId(AUTO_OPTION);
       setDmText(generateDM(profile));
+      fetch("/api/scripts")
+        .then((res) => res.json())
+        .then((data) => setScripts(Array.isArray(data) ? data : []))
+        .catch(() => setScripts([]));
     }
   }, [profile]);
+
+  const handleSelectScript = (scriptId: string) => {
+    setSelectedScriptId(scriptId);
+    if (!profile) return;
+    if (scriptId === AUTO_OPTION) {
+      setDmText(generateDM(profile));
+      return;
+    }
+    const script = scripts.find((s) => s.id === scriptId);
+    if (script) {
+      setDmText(applyScript(script, profile));
+    }
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(dmText);
@@ -97,6 +120,27 @@ export function DMGenerator({ profile, onClose }: DMGeneratorProps) {
 
         {/* Content */}
         <div className="p-6">
+          <select
+            value={selectedScriptId}
+            onChange={(e) => handleSelectScript(e.target.value)}
+            className="w-full mb-3 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-accent"
+          >
+            <option value={AUTO_OPTION}>Automático (padrão)</option>
+            {SCRIPT_STAGES.map(({ id, label }) => {
+              const stageScripts = scripts.filter((s) => s.stage === id);
+              if (stageScripts.length === 0) return null;
+              return (
+                <optgroup key={id} label={label}>
+                  {stageScripts.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.title}
+                    </option>
+                  ))}
+                </optgroup>
+              );
+            })}
+          </select>
+
           <textarea
             value={dmText}
             onChange={(e) => setDmText(e.target.value)}
