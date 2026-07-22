@@ -1,4 +1,4 @@
-import { applyScript } from "@/lib/scripts";
+import { applyScript, SCRIPT_STAGES, isValidStage } from "@/lib/scripts";
 import type { Script } from "@/types/scripts";
 import type { ScoredProfile } from "@/types/instagram";
 
@@ -43,5 +43,27 @@ describe("applyScript", () => {
     const { fullName, ...noName } = baseProfile;
     const result = applyScript(baseScript, noName as ScoredProfile);
     expect(result).toContain("Olá estudiobela!");
+  });
+});
+
+describe("SCRIPT_STAGES", () => {
+  it("tem 5 estagios na ordem fixa esperada", () => {
+    expect(SCRIPT_STAGES.map(s => s.id)).toEqual([
+      "primeiro_contacto",
+      "followup_1_semana",
+      "followup_2_semanas",
+      "followup_1_mes",
+      "outro",
+    ]);
+  });
+});
+
+describe("isValidStage", () => {
+  it("aceita estagios validos", () => {
+    expect(isValidStage("primeiro_contacto")).toBe(true);
+  });
+
+  it("rejeita estagios invalidos", () => {
+    expect(isValidStage("qualquer_coisa")).toBe(false);
   });
 });
