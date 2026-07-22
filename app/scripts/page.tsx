@@ -10,6 +10,7 @@ import { Script, ScriptStage } from "@/types/scripts";
 export default function ScriptsPage() {
   const [scripts, setScripts] = useState<Script[]>([]);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/scripts")
@@ -18,29 +19,60 @@ export default function ScriptsPage() {
       .catch(() => setScripts([]));
   }, []);
 
-  const handleCreate = async (stage: ScriptStage, title: string, body: string) => {
-    const res = await fetch("/api/scripts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stage, title, body }),
-    });
-    const created: Script = await res.json();
-    setScripts((prev) => [...prev, created]);
+  const handleCreate = async (stage: ScriptStage, title: string, body: string): Promise<boolean> => {
+    try {
+      const res = await fetch("/api/scripts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stage, title, body }),
+      });
+      if (!res.ok) {
+        setSaveError("Erro ao criar script.");
+        return false;
+      }
+      const created: Script = await res.json();
+      setScripts((prev) => [...prev, created]);
+      setSaveError(null);
+      return true;
+    } catch {
+      setSaveError("Erro ao criar script.");
+      return false;
+    }
   };
 
-  const handleSave = async (id: string, title: string, body: string) => {
-    const res = await fetch(`/api/scripts/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, body }),
-    });
-    const updated: Script = await res.json();
-    setScripts((prev) => prev.map((s) => (s.id === id ? updated : s)));
+  const handleSave = async (id: string, title: string, body: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/scripts/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body }),
+      });
+      if (!res.ok) {
+        setSaveError("Erro ao guardar script.");
+        return false;
+      }
+      const updated: Script = await res.json();
+      setScripts((prev) => prev.map((s) => (s.id === id ? updated : s)));
+      setSaveError(null);
+      return true;
+    } catch {
+      setSaveError("Erro ao guardar script.");
+      return false;
+    }
   };
 
   const handleDelete = async (id: string) => {
-    await fetch(`/api/scripts/${id}`, { method: "DELETE" });
-    setScripts((prev) => prev.filter((s) => s.id !== id));
+    try {
+      const res = await fetch(`/api/scripts/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setSaveError("Erro ao remover script.");
+        return;
+      }
+      setScripts((prev) => prev.filter((s) => s.id !== id));
+      setSaveError(null);
+    } catch {
+      setSaveError("Erro ao remover script.");
+    }
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,17 +81,28 @@ export default function ScriptsPage() {
     const text = await file.text();
     const { valid, skipped } = parseScriptsCsv(text);
 
-    if (valid.length > 0) {
-      await fetch("/api/scripts/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: valid }),
-      });
-      const refreshed = await fetch("/api/scripts").then((r) => r.json());
-      setScripts(refreshed);
+    try {
+      if (valid.length > 0) {
+        const res = await fetch("/api/scripts/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rows: valid }),
+        });
+        if (!res.ok) {
+          setSaveError("Erro ao importar scripts.");
+          e.target.value = "";
+          return;
+        }
+        const refreshed = await fetch("/api/scripts").then((r) => r.json());
+        setScripts(refreshed);
+      }
+
+      setSaveError(null);
+      setImportMessage(`${valid.length} scripts importados, ${skipped} linha(s) inválida(s) ignorada(s).`);
+    } catch {
+      setSaveError("Erro ao importar scripts.");
     }
 
-    setImportMessage(`${valid.length} scripts importados, ${skipped} linha(s) inválida(s) ignorada(s).`);
     e.target.value = "";
   };
 
@@ -111,6 +154,12 @@ export default function ScriptsPage() {
       {importMessage && (
         <div className="bg-accent/5 border border-accent/20 p-3 rounded-xl text-accent text-sm">
           {importMessage}
+        </div>
+      )}
+
+      {saveError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-3 rounded-xl text-sm">
+          {saveError}
         </div>
       )}
 

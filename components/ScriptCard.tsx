@@ -7,7 +7,7 @@ import { Pencil, Trash2, Check, X } from "lucide-react";
 
 interface ScriptCardProps {
   script: Script;
-  onSave: (id: string, title: string, body: string) => void;
+  onSave: (id: string, title: string, body: string) => Promise<boolean>;
   onDelete: (id: string) => void;
 }
 
@@ -16,10 +16,12 @@ export function ScriptCard({ script, onSave, onDelete }: ScriptCardProps) {
   const [title, setTitle] = useState(script.title);
   const [body, setBody] = useState(script.body);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!title.trim() || !body.trim()) return;
-    onSave(script.id, title, body);
-    setIsEditing(false);
+    const success = await onSave(script.id, title, body);
+    if (success) {
+      setIsEditing(false);
+    }
   };
 
   const handleCancel = () => {

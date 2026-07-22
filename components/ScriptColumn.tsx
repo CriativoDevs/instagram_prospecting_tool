@@ -9,8 +9,8 @@ interface ScriptColumnProps {
   stage: ScriptStage;
   label: string;
   scripts: Script[];
-  onCreate: (stage: ScriptStage, title: string, body: string) => void;
-  onSave: (id: string, title: string, body: string) => void;
+  onCreate: (stage: ScriptStage, title: string, body: string) => Promise<boolean>;
+  onSave: (id: string, title: string, body: string) => Promise<boolean>;
   onDelete: (id: string) => void;
 }
 
@@ -26,12 +26,14 @@ export function ScriptColumn({
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!title.trim() || !body.trim()) return;
-    onCreate(stage, title, body);
-    setTitle("");
-    setBody("");
-    setIsAdding(false);
+    const success = await onCreate(stage, title, body);
+    if (success) {
+      setTitle("");
+      setBody("");
+      setIsAdding(false);
+    }
   };
 
   const handleCancelAdd = () => {
