@@ -5,6 +5,8 @@ import { ProspectStatus, ScoredProfile } from "@/types/instagram";
 import { generateDM } from "@/lib/dm-templates";
 import { DEFAULT_FILTERS } from "@/lib/niches";
 import { scoreProfile } from "@/lib/geo";
+import { getSettings } from "@/lib/settings";
+import { followUpDate } from "@/lib/reminders";
 import { getApifyUsage, searchWithApify } from "@/lib/apify";
 
 const SEARCH_CACHE_PREFIX = "timelyone:mcp-search:";
@@ -86,13 +88,14 @@ export function createMcpServer() {
       if (i < 0) return text({ error: `Prospect @${username} não encontrado.` }, true);
 
       const now = new Date().toISOString();
-      const prev = prospects[i].prospectStatus;
+      const { followUpAt: _old, ...prev } = prospects[i].prospectStatus ?? { status: "pending" as const };
       const next: ProspectStatus = {
         ...prev,
         status,
-        ...(status === "sent" && { contactedAt: now }),
+        // lembrete de follow-up só existe enquanto o prospect está em "sent"
+        ...(status === "sent" && { contactedAt: now, followUpAt: followUpDate((await getSettings()).followUpDays) }),
         ...(status === "replied" && { repliedAt: now }),
-        ...(status === "converted" && { convertedAt: now, repliedAt: prev?.repliedAt ?? now }),
+        ...(status === "converted" && { convertedAt: now, repliedAt: prev.repliedAt ?? now }),
         ...(status === "rejected" && { rejectedAt: now }),
       };
       prospects[i] = { ...prospects[i], prospectStatus: next };

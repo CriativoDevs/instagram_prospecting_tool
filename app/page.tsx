@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Search, History, BarChart3, Users, MessageSquare, CheckCircle2, XCircle } from "lucide-react";
+import { Search, History, BarChart3, Users, MessageSquare, CheckCircle2, XCircle, Bell } from "lucide-react";
+import { dueReminderCount } from "@/lib/reminders";
 import { storage } from "@/lib/storage";
 import { useEffect, useState } from "react";
 import { ApifyCredits } from "@/components/ApifyCredits";
@@ -16,9 +17,12 @@ export default function Home() {
     replyRate: 0
   });
 
+  const [dueReminders, setDueReminders] = useState(0);
+
   useEffect(() => {
     storage.getProspects().then(prospects => {
       setStats(storage.getStats(prospects));
+      setDueReminders(dueReminderCount(prospects));
     });
   }, []);
 
@@ -59,7 +63,7 @@ export default function Home() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Link 
           href="/search"
           className="group relative overflow-hidden bg-navy-light border border-slate-800 p-8 rounded-2xl hover:border-accent/50 transition-all duration-300"
@@ -111,6 +115,28 @@ export default function Home() {
           </div>
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <MessageSquare size={120} />
+          </div>
+        </Link>
+        <Link
+          href="/reminders"
+          className="group relative overflow-hidden bg-navy-light border border-slate-800 p-8 rounded-2xl hover:border-yellow-500/50 transition-all duration-300"
+        >
+          <div className="relative z-10">
+            <div className="w-12 h-12 bg-yellow-500/10 text-yellow-400 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform relative">
+              <Bell size={28} />
+              {dueReminders > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center">
+                  {dueReminders}
+                </span>
+              )}
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Lembretes</h2>
+            <p className="text-slate-400">
+              Follow-ups pendentes de quem ainda não respondeu.
+            </p>
+          </div>
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Bell size={120} />
           </div>
         </Link>
       </div>

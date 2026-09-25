@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { redis, PROSPECTS_KEY } from "@/lib/redis";
 import { ScoredProfile } from "@/types/instagram";
+import { getSettings } from "@/lib/settings";
+import { followUpDate } from "@/lib/reminders";
 
 // GET — devolver todos os prospects
 export async function GET() {
@@ -11,6 +13,9 @@ export async function GET() {
 // POST — guardar ou actualizar um prospect
 export async function POST(request: NextRequest) {
   const profile: ScoredProfile = await request.json();
+  if (profile.prospectStatus?.status === "sent" && !profile.prospectStatus.followUpAt) {
+    profile.prospectStatus.followUpAt = followUpDate((await getSettings()).followUpDays);
+  }
   const prospects = (await redis.get<ScoredProfile[]>(PROSPECTS_KEY)) ?? [];
   const index = prospects.findIndex(p => p.username === profile.username);
 

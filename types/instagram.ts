@@ -24,6 +24,7 @@ export interface ProspectStatus {
   convertedAt?: string;
   rejectedAt?: string;
   dmText?: string;
+  followUpAt?: string; // ISO — data do lembrete de follow-up (só enquanto status === 'sent')
 }
 
 export type ScoredProfile = InstagramProfile & ScoredProfileGeo & {

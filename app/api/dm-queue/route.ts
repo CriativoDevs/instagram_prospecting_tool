@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { redis, PROSPECTS_KEY } from "@/lib/redis";
 import { ScoredProfile } from "@/types/instagram";
 import { randomUUID } from "crypto";
+import { getSettings } from "@/lib/settings";
+import { followUpDate } from "@/lib/reminders";
 
 const DM_QUEUE_KEY = "timelyone:dm-queue";
 
@@ -109,6 +111,7 @@ export async function POST(request: NextRequest) {
           ...prospects[pIdx].prospectStatus,
           status: "sent",
           contactedAt: new Date().toISOString(),
+          followUpAt: followUpDate((await getSettings()).followUpDays),
         },
       };
       await redis.set(PROSPECTS_KEY, prospects);

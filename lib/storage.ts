@@ -44,6 +44,29 @@ export const storage = {
     });
   },
 
+  setFollowUp: async (username: string, followUpAt: string | null): Promise<void> => {
+    await fetch(`/api/prospects/${encodeURIComponent(username)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ followUpAt }),
+    });
+  },
+
+  getFollowUpDays: async (): Promise<number> => {
+    const res = await fetch("/api/settings");
+    if (!res.ok) return 7;
+    return (await res.json()).followUpDays ?? 7;
+  },
+
+  saveFollowUpDays: async (followUpDays: number): Promise<number> => {
+    const res = await fetch("/api/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ followUpDays }),
+    });
+    return (await res.json()).followUpDays ?? followUpDays;
+  },
+
   deleteProspect: async (username: string): Promise<void> => {
     await fetch(`/api/prospects/${encodeURIComponent(username)}`, {
       method: "DELETE",
