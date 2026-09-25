@@ -7,7 +7,9 @@ export const maxDuration = 60;
 
 function authorized(req: Request): boolean {
   const expected = process.env.MCP_API_KEY;
-  const given = req.headers.get("x-api-key");
+  // Conectores custom do Claude não deixam definir headers (só OAuth), por isso
+  // aceitamos também a key na query string: /api/mcp?key=...
+  const given = req.headers.get("x-api-key") ?? new URL(req.url).searchParams.get("key");
   if (!expected || !given) return false;
   const a = Buffer.from(given);
   const b = Buffer.from(expected);
