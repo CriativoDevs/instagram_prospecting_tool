@@ -49,6 +49,8 @@ Extensão Chrome (Manifest V3) que lê a fila de DMs da app Timelyone e as envia
 | Parâmetro | Valor padrão |
 |---|---|
 | Delay entre envios | 45–90 segundos (aleatório) |
+| Janela horária | 09:00–20:00 (hora local do browser) |
+| Pausa longa | 5–15 min a cada 4–6 DMs |
 | Limite diário | 20 DMs |
 | Conta de envios | Reinicia à meia-noite |
 

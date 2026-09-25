@@ -12,6 +12,16 @@ const DAILY_LIMIT = 20;
 const MIN_DELAY_S = 45;
 const MAX_DELAY_S = 90;
 
+// Janela horária de envio (hora local do browser) — fora dela a fila fica em espera
+const WINDOW_START_H = 9;
+const WINDOW_END_H = 20;
+
+// Pausa longa a cada 4–6 DMs (5–15 min)
+const BREAK_EVERY_MIN = 4;
+const BREAK_EVERY_MAX = 6;
+const BREAK_MIN_S = 5 * 60;
+const BREAK_MAX_S = 15 * 60;
+
 // URL da app — usa a de produção por padrão; pode ser sobreposta em dev com:
 // chrome.storage.local.set({ appUrl: "http://localhost:3000" })
 async function getAppUrl() {
@@ -66,6 +76,12 @@ async function processQueue() {
   }
 
   if (isSending) return;
+
+  // O alarme corre a cada minuto — respeitar a janela horária e o intervalo mínimo
+  // entre envios (delay normal ou pausa longa) guardado em nextAllowedAt.
+  if (!isWithinSendWindow()) return;
+  const { nextAllowedAt = 0 } = await chrome.storage.local.get("nextAllowedAt");
+  if (Date.now() < nextAllowedAt) return;
 
   await resetDailyCountIfNeeded();
   const { sentToday = 0 } = await chrome.storage.local.get("sentToday");
@@ -131,8 +147,8 @@ async function handleDmSent(username, success, error) {
     } catch { /* app temporariamente inacessível */ }
 
     isSending = false;
-    const delayMs = randomBetween(MIN_DELAY_S, MAX_DELAY_S) * 1000;
-    console.log(`[DM Sender] Enviado para @${username}. Próximo em ${delayMs / 1000}s`);
+    const delayMs = await scheduleNextSend();
+    console.log(`[DM Sender] Enviado para @${username}. Próximo em ${Math.round(delayMs / 1000)}s`);
     setTimeout(() => processQueue(), delayMs);
   } else {
     console.error(`[DM Sender] Falha ao enviar para @${username}:`, error);
@@ -155,6 +171,34 @@ async function getStatus() {
 }
 
 // ─── Utilitários ──────────────────────────────────────────────────────────────
+
+function isWithinSendWindow() {
+  const h = new Date().getHours();
+  return h >= WINDOW_START_H && h < WINDOW_END_H;
+}
+
+// Calcula e guarda quando o próximo envio é permitido.
+// A cada 4–6 envios faz uma pausa longa; caso contrário usa o delay normal.
+async function scheduleNextSend() {
+  const { sinceBreak = 0, breakAfter } = await chrome.storage.local.get(["sinceBreak", "breakAfter"]);
+  const target = breakAfter ?? randomBetween(BREAK_EVERY_MIN, BREAK_EVERY_MAX);
+  const count = sinceBreak + 1;
+
+  let delayMs;
+  if (count >= target) {
+    delayMs = randomBetween(BREAK_MIN_S, BREAK_MAX_S) * 1000;
+    await chrome.storage.local.set({
+      sinceBreak: 0,
+      breakAfter: randomBetween(BREAK_EVERY_MIN, BREAK_EVERY_MAX),
+    });
+  } else {
+    delayMs = randomBetween(MIN_DELAY_S, MAX_DELAY_S) * 1000;
+    await chrome.storage.local.set({ sinceBreak: count, breakAfter: target });
+  }
+
+  await chrome.storage.local.set({ nextAllowedAt: Date.now() + delayMs });
+  return delayMs;
+}
 
 function randomBetween(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
