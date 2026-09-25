@@ -8,7 +8,7 @@
 
 const DEFAULT_APP_URL = "https://instagram-prospecting-tool.vercel.app";
 const POLL_ALARM = "dm-queue-poll";
-const DAILY_LIMIT = 50;
+const DAILY_LIMIT = 20;
 const MIN_DELAY_S = 45;
 const MAX_DELAY_S = 90;
 
