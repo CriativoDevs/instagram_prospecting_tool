@@ -8,10 +8,11 @@ interface ProfileCardProps {
   profile: ScoredProfile;
   onGenerateDM: (profile: ScoredProfile) => void;
   onMarkAsSent: (profile: ScoredProfile) => void;
+  onUnmarkContacted?: (profile: ScoredProfile) => void;
   alreadyContacted?: boolean;
 }
 
-export function ProfileCard({ profile, onGenerateDM, onMarkAsSent, alreadyContacted = false }: ProfileCardProps) {
+export function ProfileCard({ profile, onGenerateDM, onMarkAsSent, onUnmarkContacted, alreadyContacted = false }: ProfileCardProps) {
   const isSent = alreadyContacted || profile.prospectStatus?.status === 'sent';
 
   const badges = {
@@ -129,6 +130,14 @@ export function ProfileCard({ profile, onGenerateDM, onMarkAsSent, alreadyContac
           <CheckCircle2 size={14} />
           {isSent ? "Enviada" : "Marcar como enviada"}
         </button>
+        {alreadyContacted && onUnmarkContacted && (
+          <button
+            onClick={() => onUnmarkContacted(profile)}
+            className="col-span-2 text-[11px] text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            Remover dos contactados
+          </button>
+        )}
       </div>
     </div>
   );

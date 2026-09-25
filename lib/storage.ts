@@ -36,7 +36,7 @@ export const storage = {
     });
   },
 
-  updateStatus: async (username: string, status: "replied" | "converted" | "rejected"): Promise<void> => {
+  updateStatus: async (username: string, status: "pending" | "sent" | "replied" | "converted" | "rejected"): Promise<void> => {
     await fetch(`/api/prospects/${encodeURIComponent(username)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },

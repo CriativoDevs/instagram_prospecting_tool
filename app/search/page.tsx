@@ -20,6 +20,7 @@ export default function SearchPage() {
   const [dataSource, setDataSource] = useState<{ source: "real" | "mock"; apiError?: string; geoError?: string; geoHashtag?: string } | null>(null);
   const [contacted, setContacted] = useState<Set<string>>(new Set());
   const [showIgnored, setShowIgnored] = useState(false);
+  const [showContacted, setShowContacted] = useState(false);
 
   const CACHE_KEY = "search_cache";
 
@@ -83,6 +84,20 @@ export default function SearchPage() {
     setContacted(prev => new Set(prev).add(profile.username));
     setProfiles(prev => prev.map(p => p.username === profile.username ? updated : p));
   };
+
+  const handleUnmarkContacted = async (profile: ScoredProfile) => {
+    await storage.updateStatus(profile.username, "pending");
+    setContacted(prev => {
+      const next = new Set(prev);
+      next.delete(profile.username);
+      return next;
+    });
+    setProfiles(prev => prev.map(p => p.username === profile.username ? { ...p, prospectStatus: { status: "pending" as const } } : p));
+  };
+
+  const inCriteria = profiles.filter(p => p.score !== "ignore");
+  const hiddenContacted = inCriteria.filter(p => contacted.has(p.username)).length;
+  const visibleProfiles = showContacted ? inCriteria : inCriteria.filter(p => !contacted.has(p.username));
 
   return (
     <div className="flex flex-col gap-6 p-8 max-w-7xl mx-auto w-full">
@@ -151,9 +166,24 @@ export default function SearchPage() {
             <span>
               <strong>{stats.visible}</strong> perfis dentro dos critérios
               {stats.analyzed > 0 && <span className="font-normal text-accent/70"> (de {stats.analyzed} analisados)</span>}
-              {contacted.size > 0 && ` · ${profiles.filter(p => contacted.has(p.username)).length} já contactados`}
             </span>
           </div>
+          {hiddenContacted > 0 && (
+            <div className="flex items-center justify-between pl-7">
+              <p className="text-xs text-accent/50">
+                {showContacted
+                  ? `${hiddenContacted} ${hiddenContacted === 1 ? "perfil já contactado" : "perfis já contactados"} visíveis.`
+                  : `${hiddenContacted} ${hiddenContacted === 1 ? "perfil já contactado ocultado" : "perfis já contactados ocultados"}.`}
+              </p>
+              <button
+                onClick={() => setShowContacted(v => !v)}
+                className="flex items-center gap-1.5 text-xs text-accent/60 hover:text-accent transition-colors"
+              >
+                {showContacted ? <EyeOff size={13} /> : <Eye size={13} />}
+                {showContacted ? "Ocultar já contactados" : "Mostrar já contactados"}
+              </button>
+            </div>
+          )}
           {stats.filtered > 0 && (
             <div className="flex items-center justify-between pl-7">
               <p className="text-xs text-accent/50">
@@ -177,14 +207,15 @@ export default function SearchPage() {
           <Loader2 size={48} className="text-accent animate-spin" />
           <p className="text-slate-400 animate-pulse">A analisar perfis do Instagram…</p>
         </div>
-      ) : profiles.filter(p => p.score !== "ignore").length > 0 ? (
+      ) : visibleProfiles.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {profiles.filter(p => p.score !== "ignore").map((profile) => (
+          {visibleProfiles.map((profile) => (
             <ProfileCard
               key={profile.id}
               profile={profile}
               onGenerateDM={setSelectedProfile}
               onMarkAsSent={handleMarkAsSent}
+              onUnmarkContacted={handleUnmarkContacted}
               alreadyContacted={contacted.has(profile.username)}
             />
           ))}
@@ -205,8 +236,12 @@ export default function SearchPage() {
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-slate-800 rounded-3xl">
-          <p className="text-slate-500">Nenhum perfil passou os filtros actuais.</p>
-          <p className="text-slate-600 text-sm mt-1">Tenta alargar o intervalo de seguidores.</p>
+          <p className="text-slate-500">
+            {hiddenContacted > 0 ? "Todos os perfis encontrados já foram contactados." : "Nenhum perfil passou os filtros actuais."}
+          </p>
+          <p className="text-slate-600 text-sm mt-1">
+            {hiddenContacted > 0 ? "Usa \"Mostrar já contactados\" acima ou tenta outra hashtag." : "Tenta alargar o intervalo de seguidores."}
+          </p>
         </div>
       )}
 
